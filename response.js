@@ -148,9 +148,28 @@ function parseServiceDescription(xmlString) {
   }
 }
 
+function extractResponseFromEnvelope(envelope, actionName) {
+  const extractPaths = [
+    ['s:Envelope', 's:Body', `u:${actionName}Response`],
+    ['SOAP-ENV:Envelope', 'SOAP-ENV:Body', `m:${actionName}Response`],
+  ];
+  for(const path of extractPaths) {
+    const result = path.reduce((subject, pathItem) => {
+      if(!subject) {
+        return null;
+      }
+      return subject[pathItem];
+    }, envelope);
+    if(result) {
+      return result;
+    }
+  }
+  throw new Error(`Cannot extract ${actionName} reponse from envelope: ${JSON.stringify(envelope)}`);
+}
+
 function parseSOAPResponse(xmlString, actionName, outputs) {
   const envelope = parser.parse(xmlString);
-  const res = envelope['s:Envelope']['s:Body'][`u:${actionName}Response`];
+  const res = extractResponseFromEnvelope(envelope, actionName);
   return outputs.reduce((a, { name }) => {
     a[name] = res[name];
     return a;
